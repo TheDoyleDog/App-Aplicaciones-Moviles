@@ -1,0 +1,69 @@
+<resources>
+    <string name="app_name">Alarma Sensores</string>
+    
+    <!-- Login Screen -->
+    <string name="welcome_back">Bienvenido de Vuelta</string>
+    <string name="login_subtitle">Inicia sesión en tu cuenta</string>
+    <string name="email_username">Email / Usuario</string>
+    <string name="password">Contraseña</string>
+    <string name="forgot_password">¿Olvidé mi Contraseña?</string>
+    <string name="login">Iniciar Sesión</string>
+    <string name="no_account">¿No tienes una cuenta?</string>
+    <string name="create_account">Crear Cuenta</string>
+    
+    <!-- Register Screen -->
+    <string name="register_title">Crear Cuenta</string>
+    <string name="register_subtitle">Regístrate para comenzar</string>
+    <string name="full_name">Nombre Completo</string>
+    <string name="email">Email</string>
+    <string name="confirm_password">Confirmar Contraseña</string>
+    <string name="register">Registrarse</string>
+    <string name="already_have_account">¿Ya tienes una cuenta?</string>
+    
+    <!-- Dashboard Screen -->
+    <string name="my_alarm">Mi Alarma</string>
+    <string name="activated">ACTIVADO</string>
+    <string name="deactivated">DESACTIVADO</string>
+    <string name="system_active">El sistema de seguridad está activo.</string>
+    <string name="system_inactive">El sistema de seguridad está inactivo.</string>
+    <string name="deactivate_alarm">Desactivar Alarma</string>
+    <string name="activate_alarm">Activar Alarma</string>
+    <string name="detection_history">Historial de Detecciones</string>
+    
+    <!-- Settings Screen -->
+    <string name="settings">Ajustes</string>
+    <string name="monitoring_schedule">Horario de Monitoreo</string>
+    <string name="from">Desde</string>
+    <string name="to">Hasta</string>
+    <string name="sensor_settings">Configuración de Sensores</string>
+    <string name="detection_distance">Distancia de Detección</string>
+    <string name="low">Baja</string>
+    <string name="medium">Media</string>
+    <string name="high">Alta</string>
+    <string name="alarm_sound">Sonido de Alarma</string>
+    <string name="account">Cuenta</string>
+    <string name="logout">Cerrar Sesión</string>
+    
+    <!-- History Screen -->
+    <string name="detection_history_title">Historial de Detecciones</string>
+    <string name="today">Hoy</string>
+    <string name="yesterday">Ayer</string>
+    <string name="last_7_days">Últimos 7 días</string>
+    <string name="select_date">Seleccionar fecha</string>
+    <string name="motion_detected">Movimiento Detectado</string>
+    <string name="no_detections">Sin Detecciones</string>
+    <string name="no_detections_message">No hay eventos de detección para el período seleccionado.</string>
+    
+    <!-- Alarm Sounds -->
+    <string name="siren">Sirena</string>
+    <string name="beep">Beep</string>
+    <string name="bell">Campana</string>
+    <string name="buzzer">Zumbador</string>
+    
+    <!-- Common -->
+    <string name="cancel">Cancelar</string>
+    <string name="save">Guardar</string>
+    <string name="ok">OK</string>
+    <string name="error">Error</string>
+    <string name="success">Éxito</string>
+</resources>
