@@ -9,6 +9,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.rememberNavController
+import com.alarmasensores.app.navigation.NavGraph
+import com.alarmasensores.app.navigation.Screen
 import com.alarmasensores.app.ui.screens.auth.LoginScreen
 import com.alarmasensores.app.ui.theme.AlarmaSensoresTheme
 
@@ -21,16 +24,10 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    LoginScreen(
-                        onLoginClick = { email, password ->
-                            // TODO: Implementar lógica de login
-                        },
-                        onCreateAccountClick = {
-                            // TODO: Navegar a pantalla de registro
-                        },
-                        onForgotPasswordClick = {
-                            // TODO: Navegar a pantalla de recuperación de contraseña
-                        }
+                    val navController = rememberNavController()
+                    NavGraph(
+                        navController = navController,
+                        startDestination = Screen.Login.route
                     )
                 }
             }
