@@ -12,6 +12,7 @@ import androidx.navigation.compose.composable
 import com.alarmasensores.app.ui.screens.auth.ForgotPasswordScreen
 import com.alarmasensores.app.ui.screens.auth.LoginScreen
 import com.alarmasensores.app.ui.screens.auth.RegisterScreen
+import com.alarmasensores.app.ui.screens.dashboard.DashboardScreen
 
 /**
  * Grafo de navegación de la aplicación
@@ -72,15 +73,23 @@ fun NavGraph(
             )
         }
         
-        // Pantalla de Dashboard (placeholder)
+        // Pantalla de Dashboard
         composable(Screen.Dashboard.route) {
-            // TODO: Implementar DashboardScreen
-            DashboardPlaceholder(
+            var isAlarmEnabled by remember { mutableStateOf(false) }
+            
+            DashboardScreen(
+                isAlarmEnabled = isAlarmEnabled,
+                onToggleAlarm = {
+                    isAlarmEnabled = !isAlarmEnabled
+                },
                 onSettingsClick = {
                     navController.navigate(Screen.Settings.route)
                 },
                 onHistoryClick = {
                     navController.navigate(Screen.History.route)
+                },
+                onMenuClick = {
+                    // TODO: Implementar menú lateral
                 }
             )
         }
@@ -118,27 +127,27 @@ fun DashboardPlaceholder(
     onSettingsClick: () -> Unit,
     onHistoryClick: () -> Unit
 ) {
-    Surface(
-        modifier = Modifier.fillMaxSize()
+    androidx.compose.material3.Surface(
+        modifier = androidx.compose.ui.Modifier.fillMaxSize()
     ) {
-        Column(
-            modifier = Modifier
+        androidx.compose.foundation.layout.Column(
+            modifier = androidx.compose.ui.Modifier
                 .fillMaxSize()
                 .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+            verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
         ) {
-            Text(
+            androidx.compose.material3.Text(
                 text = "Dashboard",
-                style = MaterialTheme.typography.headlineMedium
+                style = androidx.compose.material3.MaterialTheme.typography.headlineMedium
             )
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = onSettingsClick) {
-                Text("Ir a Configuración")
+            androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(16.dp))
+            androidx.compose.material3.Button(onClick = onSettingsClick) {
+                androidx.compose.material3.Text("Ir a Configuración")
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(onClick = onHistoryClick) {
-                Text("Ir a Historial")
+            androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(8.dp))
+            androidx.compose.material3.Button(onClick = onHistoryClick) {
+                androidx.compose.material3.Text("Ir a Historial")
             }
         }
     }
@@ -149,27 +158,27 @@ fun SettingsPlaceholder(
     onBackClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
-    Surface(
-        modifier = Modifier.fillMaxSize()
+    androidx.compose.material3.Surface(
+        modifier = androidx.compose.ui.Modifier.fillMaxSize()
     ) {
-        Column(
-            modifier = Modifier
+        androidx.compose.foundation.layout.Column(
+            modifier = androidx.compose.ui.Modifier
                 .fillMaxSize()
                 .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+            verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
         ) {
-            Text(
+            androidx.compose.material3.Text(
                 text = "Configuración",
-                style = MaterialTheme.typography.headlineMedium
+                style = androidx.compose.material3.MaterialTheme.typography.headlineMedium
             )
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = onBackClick) {
-                Text("Volver")
+            androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(16.dp))
+            androidx.compose.material3.Button(onClick = onBackClick) {
+                androidx.compose.material3.Text("Volver")
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(onClick = onLogoutClick) {
-                Text("Cerrar Sesión")
+            androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(8.dp))
+            androidx.compose.material3.Button(onClick = onLogoutClick) {
+                androidx.compose.material3.Text("Cerrar Sesión")
             }
         }
     }
@@ -179,23 +188,23 @@ fun SettingsPlaceholder(
 fun HistoryPlaceholder(
     onBackClick: () -> Unit
 ) {
-    Surface(
-        modifier = Modifier.fillMaxSize()
+    androidx.compose.material3.Surface(
+        modifier = androidx.compose.ui.Modifier.fillMaxSize()
     ) {
-        Column(
-            modifier = Modifier
+        androidx.compose.foundation.layout.Column(
+            modifier = androidx.compose.ui.Modifier
                 .fillMaxSize()
                 .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+            verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
         ) {
-            Text(
+            androidx.compose.material3.Text(
                 text = "Historial de Detecciones",
-                style = MaterialTheme.typography.headlineMedium
+                style = androidx.compose.material3.MaterialTheme.typography.headlineMedium
             )
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = onBackClick) {
-                Text("Volver")
+            androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(16.dp))
+            androidx.compose.material3.Button(onClick = onBackClick) {
+                androidx.compose.material3.Text("Volver")
             }
         }
     }
