@@ -6,13 +6,9 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
 import com.alarmasensores.app.navigation.NavGraph
-import com.alarmasensores.app.navigation.Screen
-import com.alarmasensores.app.ui.screens.auth.LoginScreen
 import com.alarmasensores.app.ui.theme.AlarmaSensoresTheme
 
 class MainActivity : ComponentActivity() {
@@ -25,20 +21,9 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
-                    NavGraph(
-                        navController = navController,
-                        startDestination = Screen.Login.route
-                    )
+                    NavGraph(navController = navController)
                 }
             }
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun LoginScreenPreview() {
-    AlarmaSensoresTheme {
-        LoginScreen()
     }
 }

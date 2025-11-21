@@ -12,8 +12,6 @@ import androidx.navigation.compose.composable
 import com.alarmasensores.app.ui.screens.auth.ForgotPasswordScreen
 import com.alarmasensores.app.ui.screens.auth.LoginScreen
 import com.alarmasensores.app.ui.screens.auth.RegisterScreen
-import com.alarmasensores.app.ui.screens.settings.SettingsScreen
-import com.alarmasensores.app.data.model.AlarmConfig
 
 /**
  * Grafo de navegación de la aplicación
@@ -74,8 +72,9 @@ fun NavGraph(
             )
         }
         
-        // Pantalla de Dashboard
+        // Pantalla de Dashboard (placeholder)
         composable(Screen.Dashboard.route) {
+            // TODO: Implementar DashboardScreen
             DashboardPlaceholder(
                 onSettingsClick = {
                     navController.navigate(Screen.Settings.route)
@@ -86,15 +85,10 @@ fun NavGraph(
             )
         }
         
-        // Pantalla de Configuración
+        // Pantalla de Configuración (placeholder)
         composable(Screen.Settings.route) {
-            var config by remember { mutableStateOf(AlarmConfig()) }
-            
-            SettingsScreen(
-                config = config,
-                onConfigChange = { newConfig ->
-                    config = newConfig
-                },
+            // TODO: Implementar SettingsScreen
+            SettingsPlaceholder(
                 onBackClick = {
                     navController.popBackStack()
                 },
