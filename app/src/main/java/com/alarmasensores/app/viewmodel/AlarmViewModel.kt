@@ -10,11 +10,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.catch
 
 /**
  * ViewModel para el estado y configuración de la alarma
  */
 class AlarmViewModel : ViewModel() {
+    
+    private val repository = com.alarmasensores.app.data.repository.FirebaseRepository()
     
     // Estado de la alarma
     private val _alarmState = MutableStateFlow(AlarmState())
@@ -36,6 +39,66 @@ class AlarmViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
     
+    private var monitoringJob: kotlinx.coroutines.Job? = null
+
+    init {
+        // Intentar iniciar monitoreo al crear, pero no crashear si falla
+        startMonitoring()
+    }
+
+    fun startMonitoring() {
+        // Cancelar monitoreo anterior si existe
+        monitoringJob?.cancel()
+        
+        monitoringJob = viewModelScope.launch {
+            // Estado de la Alarma
+            launch {
+                try {
+                    repository.getAlarmState()
+                        .catch { e -> 
+                            // Log error or ignore if just "no user"
+                            println("Error monitoring alarm state: ${e.message}")
+                        }
+                        .collect { state ->
+                            _alarmState.value = state
+                        }
+                } catch (e: Exception) {
+                    println("Error collecting alarm state: ${e.message}")
+                }
+            }
+            
+            // Configuración
+            launch {
+                try {
+                    repository.getAlarmConfig()
+                        .catch { e -> 
+                             println("Error monitoring config: ${e.message}")
+                        }
+                        .collect { config ->
+                            _alarmConfig.value = config
+                        }
+                } catch (e: Exception) {
+                    println("Error collecting config: ${e.message}")
+                }
+            }
+            
+            // Historial
+            launch {
+                try {
+                    repository.getDetectionHistory()
+                        .catch { e -> 
+                             println("Error monitoring history: ${e.message}")
+                        }
+                        .collect { events ->
+                            _detectionEvents.value = events
+                        }
+                } catch (e: Exception) {
+                    println("Error collecting history: ${e.message}")
+                }
+            }
+        }
+    }
+    
     /**
      * Activar/Desactivar alarma
      */
@@ -45,9 +108,15 @@ class AlarmViewModel : ViewModel() {
                 enabled = !_alarmState.value.enabled,
                 lastUpdate = System.currentTimeMillis()
             )
+            // Actualización optimista
             _alarmState.value = newState
             
-            // TODO: Enviar estado al Arduino/Firebase
+            try {
+                repository.saveAlarmState(newState)
+            } catch (e: Exception) {
+                // Revertir si falla
+                _alarmState.value = _alarmState.value.copy(enabled = !newState.enabled)
+            }
         }
     }
     
@@ -56,9 +125,14 @@ class AlarmViewModel : ViewModel() {
      */
     fun updateConfig(config: AlarmConfig) {
         viewModelScope.launch {
+            // Actualización optimista
             _alarmConfig.value = config
             
-            // TODO: Guardar en DataStore y enviar al Arduino
+            try {
+                repository.saveAlarmConfig(config)
+            } catch (e: Exception) {
+                // Manejar error
+            }
         }
     }
     
@@ -71,13 +145,12 @@ class AlarmViewModel : ViewModel() {
             
             // Si hay movimiento detectado, agregar al historial
             if (data.motionDetected) {
-                addDetectionEvent(
-                    DetectionEvent(
-                        id = "event_${System.currentTimeMillis()}",
-                        timestamp = data.timestamp,
-                        message = "Movimiento Detectado"
-                    )
+                val event = DetectionEvent(
+                    id = "event_${System.currentTimeMillis()}",
+                    timestamp = data.timestamp,
+                    message = "Movimiento Detectado"
                 )
+                addDetectionEvent(event)
             }
         }
     }
@@ -86,66 +159,33 @@ class AlarmViewModel : ViewModel() {
      * Agregar evento de detección al historial
      */
     private fun addDetectionEvent(event: DetectionEvent) {
-        val currentEvents = _detectionEvents.value.toMutableList()
-        currentEvents.add(0, event) // Agregar al inicio
-        _detectionEvents.value = currentEvents
-        
-        // TODO: Guardar en base de datos local
+        viewModelScope.launch {
+            try {
+                repository.addDetectionEvent(event)
+            } catch (e: Exception) {
+                // Manejar error
+            }
+        }
     }
     
     /**
      * Cargar historial de detecciones
+     * (Ya se hace automáticamente en el init con el Flow)
      */
     fun loadDetectionHistory() {
-        viewModelScope.launch {
-            _isLoading.value = true
-            
-            try {
-                // TODO: Cargar desde base de datos o Firebase
-                // Por ahora, usar eventos de ejemplo
-                _detectionEvents.value = generateSampleEvents()
-            } finally {
-                _isLoading.value = false
-            }
-        }
+        // No es necesario hacer nada explícito si usamos Flow
     }
     
     /**
      * Limpiar historial
      */
     fun clearHistory() {
-        _detectionEvents.value = emptyList()
-    }
-    
-    /**
-     * Generar eventos de ejemplo
-     */
-    private fun generateSampleEvents(): List<DetectionEvent> {
-        val now = System.currentTimeMillis()
-        val oneHour = 60 * 60 * 1000L
-        val oneDay = 24 * oneHour
-        
-        return listOf(
-            DetectionEvent(
-                id = "1",
-                timestamp = now - (2 * oneHour),
-                message = "Movimiento Detectado"
-            ),
-            DetectionEvent(
-                id = "2",
-                timestamp = now - (6 * oneHour),
-                message = "Movimiento Detectado"
-            ),
-            DetectionEvent(
-                id = "3",
-                timestamp = now - oneDay - (2 * oneHour),
-                message = "Movimiento Detectado"
-            ),
-            DetectionEvent(
-                id = "4",
-                timestamp = now - (3 * oneDay),
-                message = "Movimiento Detectado"
-            )
-        )
+        viewModelScope.launch {
+            try {
+                repository.clearHistory()
+            } catch (e: Exception) {
+                // Manejar error
+            }
+        }
     }
 }

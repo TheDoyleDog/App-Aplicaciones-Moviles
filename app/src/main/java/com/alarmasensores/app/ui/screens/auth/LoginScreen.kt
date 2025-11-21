@@ -22,6 +22,8 @@ import com.alarmasensores.app.ui.theme.PrimaryBlue
  */
 @Composable
 fun LoginScreen(
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
     onLoginClick: (String, String) -> Unit = { _, _ -> },
     onCreateAccountClick: () -> Unit = {},
     onForgotPasswordClick: () -> Unit = {}
@@ -72,6 +74,17 @@ fun LoginScreen(
             
             Spacer(modifier = Modifier.height(32.dp))
             
+            // Mensaje de Error
+            if (errorMessage != null) {
+                Text(
+                    text = errorMessage,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+            }
+            
             // Campo de Email/Usuario
             EmailTextField(
                 value = email,
@@ -110,12 +123,16 @@ fun LoginScreen(
             
             Spacer(modifier = Modifier.height(24.dp))
             
-            // Botón de Login
-            PrimaryButton(
-                text = "Iniciar Sesión",
-                onClick = { onLoginClick(email, password) },
-                enabled = email.isNotBlank() && password.isNotBlank()
-            )
+            if (isLoading) {
+                CircularProgressIndicator(color = PrimaryBlue)
+            } else {
+                // Botón de Login
+                PrimaryButton(
+                    text = "Iniciar Sesión",
+                    onClick = { onLoginClick(email, password) },
+                    enabled = email.isNotBlank() && password.isNotBlank()
+                )
+            }
             
             Spacer(modifier = Modifier.height(32.dp))
             

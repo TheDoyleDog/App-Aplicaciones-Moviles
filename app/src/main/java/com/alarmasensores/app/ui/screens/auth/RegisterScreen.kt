@@ -22,6 +22,8 @@ import com.alarmasensores.app.ui.theme.PrimaryBlue
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
     onRegisterClick: (String, String, String, String) -> Unit = { _, _, _, _ -> },
     onLoginClick: () -> Unit = {}
 ) {
@@ -79,6 +81,17 @@ fun RegisterScreen(
             
             Spacer(modifier = Modifier.height(32.dp))
             
+            // Mensaje de Error
+            if (errorMessage != null) {
+                Text(
+                    text = errorMessage,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+            }
+            
             // Campo de Nombre Completo
             OutlinedTextField(
                 value = fullName,
@@ -135,12 +148,16 @@ fun RegisterScreen(
             
             Spacer(modifier = Modifier.height(24.dp))
             
-            // Botón de Registro
-            PrimaryButton(
-                text = "Registrarse",
-                onClick = { onRegisterClick(fullName, email, password, confirmPassword) },
-                enabled = isFormValid
-            )
+            if (isLoading) {
+                CircularProgressIndicator(color = PrimaryBlue)
+            } else {
+                // Botón de Registro
+                PrimaryButton(
+                    text = "Registrarse",
+                    onClick = { onRegisterClick(fullName, email, password, confirmPassword) },
+                    enabled = isFormValid
+                )
+            }
             
             Spacer(modifier = Modifier.height(32.dp))
             

@@ -76,8 +76,9 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.0.0")
     
     // Firebase BOM
-    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
-    implementation("com.google.firebase:firebase-database-ktx")
+    implementation(platform("com.google.firebase:firebase-bom:34.6.0"))
+    implementation("com.google.firebase:firebase-database")
+    implementation("com.google.firebase:firebase-auth")
     
     // Testing
     testImplementation("junit:junit:4.13.2")

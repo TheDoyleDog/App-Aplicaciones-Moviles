@@ -22,24 +22,51 @@ fun NavGraph(
     navController: NavHostController,
     startDestination: String = Screen.Login.route
 ) {
+    val authViewModel: com.alarmasensores.app.viewmodel.AuthViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val alarmViewModel: com.alarmasensores.app.viewmodel.AlarmViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+
+    // Observar estado de autenticación para navegación automática si ya está logueado
+    val currentUser by authViewModel.currentUser.collectAsState()
+    
+    // Efecto para navegar al dashboard si hay usuario logueado al iniciar
+    LaunchedEffect(currentUser) {
+        if (currentUser != null) {
+            // Iniciar monitoreo de datos cuando hay usuario
+            alarmViewModel.startMonitoring()
+            
+            if (navController.currentDestination?.route == Screen.Login.route) {
+                navController.navigate(Screen.Dashboard.route) {
+                    popUpTo(Screen.Login.route) { inclusive = true }
+                }
+            }
+        }
+    }
+
     NavHost(
         navController = navController,
         startDestination = startDestination
     ) {
         // Pantalla de Login
         composable(Screen.Login.route) {
+            val isLoading by authViewModel.isLoading.collectAsState()
+            val errorMessage by authViewModel.errorMessage.collectAsState()
+
             LoginScreen(
+                isLoading = isLoading,
+                errorMessage = errorMessage,
                 onLoginClick = { email, password ->
-                    // TODO: Implementar lógica de login
-                    // Por ahora navega directamente al dashboard
-                    navController.navigate(Screen.Dashboard.route) {
-                        popUpTo(Screen.Login.route) { inclusive = true }
+                    authViewModel.login(email, password) {
+                        navController.navigate(Screen.Dashboard.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
                     }
                 },
                 onCreateAccountClick = {
+                    authViewModel.clearError()
                     navController.navigate(Screen.Register.route)
                 },
                 onForgotPasswordClick = {
+                    authViewModel.clearError()
                     navController.navigate(Screen.ForgotPassword.route)
                 }
             )
@@ -47,15 +74,21 @@ fun NavGraph(
         
         // Pantalla de Registro
         composable(Screen.Register.route) {
+            val isLoading by authViewModel.isLoading.collectAsState()
+            val errorMessage by authViewModel.errorMessage.collectAsState()
+
             RegisterScreen(
+                isLoading = isLoading,
+                errorMessage = errorMessage,
                 onRegisterClick = { fullName, email, password, confirmPassword ->
-                    // TODO: Implementar lógica de registro
-                    // Por ahora navega al dashboard
-                    navController.navigate(Screen.Dashboard.route) {
-                        popUpTo(Screen.Login.route) { inclusive = true }
+                    authViewModel.register(fullName, email, password) {
+                        navController.navigate(Screen.Dashboard.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
                     }
                 },
                 onLoginClick = {
+                    authViewModel.clearError()
                     navController.popBackStack()
                 }
             )
@@ -63,11 +96,20 @@ fun NavGraph(
         
         // Pantalla de Recuperación de Contraseña
         composable(Screen.ForgotPassword.route) {
+            val isLoading by authViewModel.isLoading.collectAsState()
+            val errorMessage by authViewModel.errorMessage.collectAsState()
+
             ForgotPasswordScreen(
+                isLoading = isLoading,
+                errorMessage = errorMessage,
                 onResetPasswordClick = { email ->
-                    // TODO: Implementar lógica de recuperación
+                    authViewModel.resetPassword(email) {
+                        // Mostrar mensaje de éxito o navegar atrás
+                        navController.popBackStack()
+                    }
                 },
                 onBackClick = {
+                    authViewModel.clearError()
                     navController.popBackStack()
                 }
             )
@@ -75,12 +117,12 @@ fun NavGraph(
         
         // Pantalla de Dashboard
         composable(Screen.Dashboard.route) {
-            var isAlarmEnabled by remember { mutableStateOf(false) }
+            val alarmState by alarmViewModel.alarmState.collectAsState()
             
             DashboardScreen(
-                isAlarmEnabled = isAlarmEnabled,
+                isAlarmEnabled = alarmState.enabled,
                 onToggleAlarm = {
-                    isAlarmEnabled = !isAlarmEnabled
+                    alarmViewModel.toggleAlarm()
                 },
                 onSettingsClick = {
                     navController.navigate(Screen.Settings.route)
@@ -96,17 +138,18 @@ fun NavGraph(
         
         // Pantalla de Configuración
         composable(Screen.Settings.route) {
-            var config by remember { mutableStateOf(AlarmConfig()) }
+            val config by alarmViewModel.alarmConfig.collectAsState()
             
             SettingsScreen(
                 config = config,
                 onConfigChange = { newConfig ->
-                    config = newConfig
+                    alarmViewModel.updateConfig(newConfig)
                 },
                 onBackClick = {
                     navController.popBackStack()
                 },
                 onLogoutClick = {
+                    authViewModel.logout()
                     navController.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }
                     }
@@ -116,8 +159,10 @@ fun NavGraph(
         
         // Pantalla de Historial
         composable(Screen.History.route) {
+            val events by alarmViewModel.detectionEvents.collectAsState()
+            
             HistoryScreen(
-                events = getSampleEvents(),
+                events = events,
                 onBackClick = {
                     navController.popBackStack()
                 }

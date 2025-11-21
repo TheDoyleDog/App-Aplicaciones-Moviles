@@ -30,9 +30,67 @@ fun HistoryScreen(
     onBackClick: () -> Unit = {}
 ) {
     var selectedFilter by remember { mutableStateOf("Hoy") }
+    var selectedDateMillis by remember { mutableStateOf<Long?>(null) }
     
-    // Agrupar eventos por día
-    val groupedEvents = events.groupBy { it.getRelativeDay() }
+    // Contexto para el DatePickerDialog
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val calendar = java.util.Calendar.getInstance()
+    
+    // Función para mostrar el DatePicker
+    fun showDatePicker() {
+        android.app.DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                val selectedCal = java.util.Calendar.getInstance()
+                selectedCal.set(year, month, dayOfMonth, 0, 0, 0)
+                selectedCal.set(java.util.Calendar.MILLISECOND, 0)
+                selectedDateMillis = selectedCal.timeInMillis
+                selectedFilter = "Seleccionar"
+            },
+            calendar.get(java.util.Calendar.YEAR),
+            calendar.get(java.util.Calendar.MONTH),
+            calendar.get(java.util.Calendar.DAY_OF_MONTH)
+        ).show()
+    }
+
+    // Lógica de filtrado
+    val filteredEvents = remember(events, selectedFilter, selectedDateMillis) {
+        val now = java.util.Calendar.getInstance()
+        val eventCal = java.util.Calendar.getInstance()
+        
+        events.filter { event ->
+            eventCal.timeInMillis = event.timestamp
+            
+            when (selectedFilter) {
+                "Hoy" -> {
+                    now.get(java.util.Calendar.YEAR) == eventCal.get(java.util.Calendar.YEAR) &&
+                    now.get(java.util.Calendar.DAY_OF_YEAR) == eventCal.get(java.util.Calendar.DAY_OF_YEAR)
+                }
+                "Ayer" -> {
+                    val yesterday = java.util.Calendar.getInstance()
+                    yesterday.add(java.util.Calendar.DAY_OF_YEAR, -1)
+                    yesterday.get(java.util.Calendar.YEAR) == eventCal.get(java.util.Calendar.YEAR) &&
+                    yesterday.get(java.util.Calendar.DAY_OF_YEAR) == eventCal.get(java.util.Calendar.DAY_OF_YEAR)
+                }
+                "Últimos 7 días" -> {
+                    val sevenDaysAgo = java.util.Calendar.getInstance()
+                    sevenDaysAgo.add(java.util.Calendar.DAY_OF_YEAR, -7)
+                    event.timestamp >= sevenDaysAgo.timeInMillis
+                }
+                "Seleccionar" -> {
+                    selectedDateMillis?.let { selected ->
+                        val selectedCal = java.util.Calendar.getInstance().apply { timeInMillis = selected }
+                        selectedCal.get(java.util.Calendar.YEAR) == eventCal.get(java.util.Calendar.YEAR) &&
+                        selectedCal.get(java.util.Calendar.DAY_OF_YEAR) == eventCal.get(java.util.Calendar.DAY_OF_YEAR)
+                    } ?: true
+                }
+                else -> true
+            }
+        }
+    }
+    
+    // Agrupar eventos filtrados por día
+    val groupedEvents = filteredEvents.groupBy { it.getRelativeDay() }
     
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -84,18 +142,26 @@ fun HistoryScreen(
                 FilterChip(
                     selected = selectedFilter == "Ayer",
                     onClick = { selectedFilter = "Ayer" },
-                    label = { Text("Ayer") }
+                    label = { Text("Ayer") },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = PrimaryBlue,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                    )
                 )
                 
                 FilterChip(
                     selected = selectedFilter == "Últimos 7 días",
                     onClick = { selectedFilter = "Últimos 7 días" },
-                    label = { Text("Últimos 7 días") }
+                    label = { Text("7 días") },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = PrimaryBlue,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                    )
                 )
                 
                 FilterChip(
                     selected = selectedFilter == "Seleccionar",
-                    onClick = { selectedFilter = "Seleccionar" },
+                    onClick = { showDatePicker() },
                     label = {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -106,14 +172,21 @@ fun HistoryScreen(
                                 contentDescription = null,
                                 modifier = Modifier.size(16.dp)
                             )
-                            Text("Seleccionar")
+                            Text(if (selectedFilter == "Seleccionar" && selectedDateMillis != null) {
+                                val sdf = java.text.SimpleDateFormat("dd/MM", java.util.Locale.getDefault())
+                                sdf.format(java.util.Date(selectedDateMillis!!))
+                            } else "Otro")
                         }
-                    }
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = PrimaryBlue,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                    )
                 )
             }
             
             // Content
-            if (events.isEmpty()) {
+            if (filteredEvents.isEmpty()) {
                 // Empty State
                 EmptyHistoryState()
             } else {

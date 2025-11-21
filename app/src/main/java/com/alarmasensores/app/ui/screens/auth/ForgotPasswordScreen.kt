@@ -22,6 +22,8 @@ import com.alarmasensores.app.ui.theme.PrimaryBlue
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ForgotPasswordScreen(
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
     onResetPasswordClick: (String) -> Unit = {},
     onBackClick: () -> Unit = {}
 ) {
@@ -92,6 +94,17 @@ fun ForgotPasswordScreen(
                 
                 Spacer(modifier = Modifier.height(32.dp))
                 
+                // Mensaje de Error
+                if (errorMessage != null) {
+                    Text(
+                        text = errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                }
+                
                 // Campo de Email
                 EmailTextField(
                     value = email,
@@ -102,15 +115,19 @@ fun ForgotPasswordScreen(
                 
                 Spacer(modifier = Modifier.height(24.dp))
                 
-                // Botón de Enviar
-                PrimaryButton(
-                    text = "Enviar Instrucciones",
-                    onClick = {
-                        onResetPasswordClick(email)
-                        showSuccessMessage = true
-                    },
-                    enabled = email.isNotBlank()
-                )
+                if (isLoading) {
+                    CircularProgressIndicator(color = PrimaryBlue)
+                } else {
+                    // Botón de Enviar
+                    PrimaryButton(
+                        text = "Enviar Instrucciones",
+                        onClick = {
+                            onResetPasswordClick(email)
+                            showSuccessMessage = true
+                        },
+                        enabled = email.isNotBlank()
+                    )
+                }
                 
                 // Mensaje de éxito
                 if (showSuccessMessage) {

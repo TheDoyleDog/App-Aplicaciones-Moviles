@@ -23,17 +23,39 @@ import com.alarmasensores.app.ui.theme.WarningRed
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+
 fun SettingsScreen(
     config: AlarmConfig = AlarmConfig(),
     onConfigChange: (AlarmConfig) -> Unit = {},
     onBackClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {}
 ) {
-    var scheduleFrom by remember { mutableStateOf(config.scheduleFrom) }
-    var scheduleTo by remember { mutableStateOf(config.scheduleTo) }
-    var detectionDistance by remember { mutableStateOf(config.detectionDistance.toFloat()) }
-    var selectedSound by remember { mutableStateOf(config.alarmSound) }
+    var scheduleFrom by remember(config.scheduleFrom) { mutableStateOf(config.scheduleFrom) }
+    var scheduleTo by remember(config.scheduleTo) { mutableStateOf(config.scheduleTo) }
+    var detectionDistance by remember(config.detectionDistance) { mutableStateOf(config.detectionDistance.toFloat()) }
+    var selectedSound by remember(config.alarmSound) { mutableStateOf(config.alarmSound) }
     var showSoundDialog by remember { mutableStateOf(false) }
+    
+    // Time Picker State
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val calendar = java.util.Calendar.getInstance()
+    
+    fun showTimePicker(initialTime: String, onTimeSelected: (String) -> Unit) {
+        val parts = initialTime.split(":")
+        val hour = if (parts.size == 2) parts[0].toIntOrNull() ?: 12 else 12
+        val minute = if (parts.size == 2) parts[1].toIntOrNull() ?: 0 else 0
+        
+        android.app.TimePickerDialog(
+            context,
+            { _, h, m ->
+                val formattedTime = String.format("%02d:%02d", h, m)
+                onTimeSelected(formattedTime)
+            },
+            hour,
+            minute,
+            true // 24 hour format
+        ).show()
+    }
     
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -88,7 +110,10 @@ fun SettingsScreen(
                                 title = "Desde",
                                 value = scheduleFrom,
                                 onClick = {
-                                    // TODO: Mostrar time picker
+                                    showTimePicker(scheduleFrom) { newTime ->
+                                        scheduleFrom = newTime
+                                        onConfigChange(config.copy(scheduleFrom = newTime))
+                                    }
                                 }
                             )
                             
@@ -100,7 +125,10 @@ fun SettingsScreen(
                                 title = "Hasta",
                                 value = scheduleTo,
                                 onClick = {
-                                    // TODO: Mostrar time picker
+                                    showTimePicker(scheduleTo) { newTime ->
+                                        scheduleTo = newTime
+                                        onConfigChange(config.copy(scheduleTo = newTime))
+                                    }
                                 }
                             )
                         }
@@ -145,6 +173,9 @@ fun SettingsScreen(
                             Slider(
                                 value = detectionDistance,
                                 onValueChange = { detectionDistance = it },
+                                onValueChangeFinished = {
+                                    onConfigChange(config.copy(detectionDistance = detectionDistance.toInt()))
+                                },
                                 valueRange = 0f..10f,
                                 steps = 9,
                                 colors = SliderDefaults.colors(
@@ -245,6 +276,7 @@ fun SettingsScreen(
             currentSound = selectedSound,
             onSoundSelected = { sound ->
                 selectedSound = sound
+                onConfigChange(config.copy(alarmSound = sound))
                 showSoundDialog = false
             },
             onDismiss = { showSoundDialog = false }

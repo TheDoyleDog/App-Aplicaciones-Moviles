@@ -13,6 +13,8 @@ import kotlinx.coroutines.launch
  */
 class AuthViewModel : ViewModel() {
     
+    private val repository = com.alarmasensores.app.data.repository.FirebaseRepository()
+    
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
     
@@ -21,6 +23,11 @@ class AuthViewModel : ViewModel() {
     
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+    
+    init {
+        // Verificar si ya hay usuario logueado
+        _currentUser.value = repository.getCurrentUser()
+    }
     
     /**
      * Iniciar sesión
@@ -31,13 +38,7 @@ class AuthViewModel : ViewModel() {
             _errorMessage.value = null
             
             try {
-                // TODO: Implementar lógica de autenticación real
-                // Por ahora, simulamos un login exitoso
-                val user = User(
-                    id = "user_${System.currentTimeMillis()}",
-                    email = email,
-                    fullName = "Usuario Demo"
-                )
+                val user = repository.login(email, password)
                 _currentUser.value = user
                 onSuccess()
             } catch (e: Exception) {
@@ -57,13 +58,7 @@ class AuthViewModel : ViewModel() {
             _errorMessage.value = null
             
             try {
-                // TODO: Implementar lógica de registro real
-                // Por ahora, simulamos un registro exitoso
-                val user = User(
-                    id = "user_${System.currentTimeMillis()}",
-                    email = email,
-                    fullName = fullName
-                )
+                val user = repository.register(email, password, fullName)
                 _currentUser.value = user
                 onSuccess()
             } catch (e: Exception) {
@@ -83,8 +78,7 @@ class AuthViewModel : ViewModel() {
             _errorMessage.value = null
             
             try {
-                // TODO: Implementar lógica de recuperación real
-                // Por ahora, simulamos éxito
+                repository.resetPassword(email)
                 onSuccess()
             } catch (e: Exception) {
                 _errorMessage.value = e.message ?: "Error al enviar instrucciones"
@@ -98,6 +92,7 @@ class AuthViewModel : ViewModel() {
      * Cerrar sesión
      */
     fun logout() {
+        repository.logout()
         _currentUser.value = null
         _errorMessage.value = null
     }
