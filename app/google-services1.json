@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1046733338516",
+    "project_id": "alarmasensores-ca4b1",
+    "storage_bucket": "alarmasensores-ca4b1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1046733338516:android:4ba505a797e7e18fa3c181",
+        "android_client_info": {
+          "package_name": "com.alarmasensores.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBtwn_0tXiitArh96zSunAeZTtRQWyRScY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
