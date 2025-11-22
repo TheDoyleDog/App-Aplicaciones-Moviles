@@ -62,6 +62,7 @@ fun HistoryScreen(
             eventCal.timeInMillis = event.timestamp
             
             when (selectedFilter) {
+                "Todos" -> true
                 "Hoy" -> {
                     now.get(java.util.Calendar.YEAR) == eventCal.get(java.util.Calendar.YEAR) &&
                     now.get(java.util.Calendar.DAY_OF_YEAR) == eventCal.get(java.util.Calendar.DAY_OF_YEAR)
@@ -129,6 +130,16 @@ fun HistoryScreen(
                     .padding(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                FilterChip(
+                    selected = selectedFilter == "Todos",
+                    onClick = { selectedFilter = "Todos" },
+                    label = { Text("Todos") },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = PrimaryBlue,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                )
+
                 FilterChip(
                     selected = selectedFilter == "Hoy",
                     onClick = { selectedFilter = "Hoy" },
