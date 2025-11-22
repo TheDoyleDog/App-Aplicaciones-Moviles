@@ -129,9 +129,6 @@ fun NavGraph(
                 },
                 onHistoryClick = {
                     navController.navigate(Screen.History.route)
-                },
-                onMenuClick = {
-                    // TODO: Implementar menú lateral
                 }
             )
         }

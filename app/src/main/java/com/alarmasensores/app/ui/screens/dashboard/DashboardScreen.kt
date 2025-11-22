@@ -32,8 +32,7 @@ fun DashboardScreen(
     isAlarmEnabled: Boolean = false,
     onToggleAlarm: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
-    onHistoryClick: () -> Unit = {},
-    onMenuClick: () -> Unit = {}
+    onHistoryClick: () -> Unit = {}
 ) {
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -54,15 +53,7 @@ fun DashboardScreen(
                         )
                     )
                 },
-                navigationIcon = {
-                    IconButton(onClick = onMenuClick) {
-                        Icon(
-                            imageVector = Icons.Default.Menu,
-                            contentDescription = "Menú",
-                            tint = InactiveGray
-                        )
-                    }
-                },
+                navigationIcon = {},
                 actions = {
                     IconButton(onClick = onSettingsClick) {
                         Icon(
