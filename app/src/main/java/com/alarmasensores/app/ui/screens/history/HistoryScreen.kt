@@ -286,13 +286,15 @@ fun DetectionEventItem(event: DetectionEvent) {
                 }
             }
             
-            // Arrow
+            // Arrow Removed
+            /*
             Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(24.dp)
             )
+            */
         }
     }
 }

@@ -1,6 +1,6 @@
 package com.alarmasensores.app.navigation
 
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -10,35 +10,74 @@ import com.alarmasensores.app.ui.screens.auth.RegisterScreen
 import com.alarmasensores.app.ui.screens.dashboard.DashboardScreen
 import com.alarmasensores.app.ui.screens.settings.SettingsScreen
 import com.alarmasensores.app.ui.screens.history.HistoryScreen
-import com.alarmasensores.app.ui.screens.history.getSampleEvents
-import androidx.compose.runtime.*
 import com.alarmasensores.app.data.model.AlarmConfig
+import com.alarmasensores.app.data.model.AlarmState
+import com.alarmasensores.app.data.model.DetectionEvent
+import com.alarmasensores.app.data.model.SensorData
+import com.alarmasensores.app.data.model.User
+import com.alarmasensores.app.data.repository.FirebaseRepository
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.launch
 
 /**
  * Grafo de navegación de la aplicación
+ * Gestiona todo el estado y la lógica de negocio para simplificar la arquitectura.
  */
 @Composable
 fun NavGraph(
     navController: NavHostController,
     startDestination: String = Screen.Login.route
 ) {
-    val authViewModel: com.alarmasensores.app.viewmodel.AuthViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
-    val alarmViewModel: com.alarmasensores.app.viewmodel.AlarmViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val scope = rememberCoroutineScope()
+    val repository = remember { FirebaseRepository() }
 
-    // Observar estado de autenticación para navegación automática si ya está logueado
-    val currentUser by authViewModel.currentUser.collectAsState()
+    // --- Estado Global ---
+    var currentUser by remember { mutableStateOf<User?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    // Estado de Alarma
+    var alarmState by remember { mutableStateOf(AlarmState()) }
+    var alarmConfig by remember { mutableStateOf(AlarmConfig()) }
+    var detectionEvents by remember { mutableStateOf<List<DetectionEvent>>(emptyList()) }
     
-    // Efecto para navegar al dashboard si hay usuario logueado al iniciar
+    // Inicialización: Verificar usuario actual
+    LaunchedEffect(Unit) {
+        currentUser = repository.getCurrentUser()
+    }
+
+    // --- Efectos y Monitoreo ---
+    // Monitorear datos de Firebase cuando hay un usuario logueado
     LaunchedEffect(currentUser) {
         if (currentUser != null) {
-            // Iniciar monitoreo de datos cuando hay usuario
-            alarmViewModel.startMonitoring()
-            
+            // Navegar al dashboard si estamos en login
             if (navController.currentDestination?.route == Screen.Login.route) {
                 navController.navigate(Screen.Dashboard.route) {
                     popUpTo(Screen.Login.route) { inclusive = true }
                 }
             }
+
+            // Iniciar monitoreo de datos
+            launch {
+                repository.getAlarmState()
+                    .catch { e -> println("Error monitoring alarm state: ${e.message}") }
+                    .collect { alarmState = it }
+            }
+            launch {
+                repository.getAlarmConfig()
+                    .catch { e -> println("Error monitoring config: ${e.message}") }
+                    .collect { alarmConfig = it }
+            }
+            launch {
+                repository.getDetectionHistory()
+                    .catch { e -> println("Error monitoring history: ${e.message}") }
+                    .collect { detectionEvents = it }
+            }
+        } else {
+            // Limpiar estado al cerrar sesión
+            alarmState = AlarmState()
+            alarmConfig = AlarmConfig()
+            detectionEvents = emptyList()
         }
     }
 
@@ -48,25 +87,28 @@ fun NavGraph(
     ) {
         // Pantalla de Login
         composable(Screen.Login.route) {
-            val isLoading by authViewModel.isLoading.collectAsState()
-            val errorMessage by authViewModel.errorMessage.collectAsState()
-
             LoginScreen(
                 isLoading = isLoading,
                 errorMessage = errorMessage,
                 onLoginClick = { email, password ->
-                    authViewModel.login(email, password) {
-                        navController.navigate(Screen.Dashboard.route) {
-                            popUpTo(Screen.Login.route) { inclusive = true }
+                    scope.launch {
+                        isLoading = true
+                        errorMessage = null
+                        try {
+                            currentUser = repository.login(email, password)
+                        } catch (e: Exception) {
+                            errorMessage = e.message ?: "Error al iniciar sesión"
+                        } finally {
+                            isLoading = false
                         }
                     }
                 },
                 onCreateAccountClick = {
-                    authViewModel.clearError()
+                    errorMessage = null
                     navController.navigate(Screen.Register.route)
                 },
                 onForgotPasswordClick = {
-                    authViewModel.clearError()
+                    errorMessage = null
                     navController.navigate(Screen.ForgotPassword.route)
                 }
             )
@@ -74,21 +116,24 @@ fun NavGraph(
         
         // Pantalla de Registro
         composable(Screen.Register.route) {
-            val isLoading by authViewModel.isLoading.collectAsState()
-            val errorMessage by authViewModel.errorMessage.collectAsState()
-
             RegisterScreen(
                 isLoading = isLoading,
                 errorMessage = errorMessage,
                 onRegisterClick = { fullName, email, password, confirmPassword ->
-                    authViewModel.register(fullName, email, password) {
-                        navController.navigate(Screen.Dashboard.route) {
-                            popUpTo(Screen.Login.route) { inclusive = true }
+                    scope.launch {
+                        isLoading = true
+                        errorMessage = null
+                        try {
+                            currentUser = repository.register(email, password, fullName)
+                        } catch (e: Exception) {
+                            errorMessage = e.message ?: "Error al registrar usuario"
+                        } finally {
+                            isLoading = false
                         }
                     }
                 },
                 onLoginClick = {
-                    authViewModel.clearError()
+                    errorMessage = null
                     navController.popBackStack()
                 }
             )
@@ -96,20 +141,26 @@ fun NavGraph(
         
         // Pantalla de Recuperación de Contraseña
         composable(Screen.ForgotPassword.route) {
-            val isLoading by authViewModel.isLoading.collectAsState()
-            val errorMessage by authViewModel.errorMessage.collectAsState()
-
             ForgotPasswordScreen(
                 isLoading = isLoading,
                 errorMessage = errorMessage,
                 onResetPasswordClick = { email ->
-                    authViewModel.resetPassword(email) {
-                        // Mostrar mensaje de éxito o navegar atrás
-                        navController.popBackStack()
+                    scope.launch {
+                        isLoading = true
+                        errorMessage = null
+                        try {
+                            repository.resetPassword(email)
+                            // Éxito: volver atrás
+                            navController.popBackStack()
+                        } catch (e: Exception) {
+                            errorMessage = e.message ?: "Error al enviar instrucciones"
+                        } finally {
+                            isLoading = false
+                        }
                     }
                 },
                 onBackClick = {
-                    authViewModel.clearError()
+                    errorMessage = null
                     navController.popBackStack()
                 }
             )
@@ -117,12 +168,23 @@ fun NavGraph(
         
         // Pantalla de Dashboard
         composable(Screen.Dashboard.route) {
-            val alarmState by alarmViewModel.alarmState.collectAsState()
-            
             DashboardScreen(
                 isAlarmEnabled = alarmState.enabled,
                 onToggleAlarm = {
-                    alarmViewModel.toggleAlarm()
+                    scope.launch {
+                        val newState = alarmState.copy(
+                            enabled = !alarmState.enabled,
+                            lastUpdate = System.currentTimeMillis()
+                        )
+                        // Optimista
+                        alarmState = newState
+                        try {
+                            repository.saveAlarmState(newState)
+                        } catch (e: Exception) {
+                            // Revertir
+                            alarmState = alarmState.copy(enabled = !newState.enabled)
+                        }
+                    }
                 },
                 onSettingsClick = {
                     navController.navigate(Screen.Settings.route)
@@ -135,18 +197,35 @@ fun NavGraph(
         
         // Pantalla de Configuración
         composable(Screen.Settings.route) {
-            val config by alarmViewModel.alarmConfig.collectAsState()
-            
             SettingsScreen(
-                config = config,
+                config = alarmConfig,
                 onConfigChange = { newConfig ->
-                    alarmViewModel.updateConfig(newConfig)
+                    scope.launch {
+                        // Optimista
+                        alarmConfig = newConfig
+                        try {
+                            repository.saveAlarmConfig(newConfig)
+                        } catch (e: Exception) {
+                            // Manejar error si es necesario
+                        }
+                    }
+                },
+                onClearHistory = {
+                    scope.launch {
+                        try {
+                            repository.clearHistory()
+                            // El listener en LaunchedEffect actualizará la lista de eventos automáticamente
+                        } catch (e: Exception) {
+                            // Manejar error si es necesario
+                        }
+                    }
                 },
                 onBackClick = {
                     navController.popBackStack()
                 },
                 onLogoutClick = {
-                    authViewModel.logout()
+                    repository.logout()
+                    currentUser = null
                     navController.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }
                     }
@@ -156,10 +235,8 @@ fun NavGraph(
         
         // Pantalla de Historial
         composable(Screen.History.route) {
-            val events by alarmViewModel.detectionEvents.collectAsState()
-            
             HistoryScreen(
-                events = events,
+                events = detectionEvents,
                 onBackClick = {
                     navController.popBackStack()
                 }

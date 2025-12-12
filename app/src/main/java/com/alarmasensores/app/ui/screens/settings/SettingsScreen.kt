@@ -27,6 +27,7 @@ import com.alarmasensores.app.ui.theme.WarningRed
 fun SettingsScreen(
     config: AlarmConfig = AlarmConfig(),
     onConfigChange: (AlarmConfig) -> Unit = {},
+    onClearHistory: () -> Unit = {},
     onBackClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {}
 ) {
@@ -35,6 +36,7 @@ fun SettingsScreen(
     var detectionDistance by remember(config.detectionDistance) { mutableStateOf(config.detectionDistance.toFloat()) }
     var selectedSound by remember(config.alarmSound) { mutableStateOf(config.alarmSound) }
     var showSoundDialog by remember { mutableStateOf(false) }
+    var showClearHistoryDialog by remember { mutableStateOf(false) }
     
     // Time Picker State
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -169,42 +171,28 @@ fun SettingsScreen(
                             
                             Spacer(modifier = Modifier.height(16.dp))
                             
-                            // Slider
+                            // Slider (50cm a 400cm)
                             Slider(
                                 value = detectionDistance,
                                 onValueChange = { detectionDistance = it },
                                 onValueChangeFinished = {
                                     onConfigChange(config.copy(detectionDistance = detectionDistance.toInt()))
                                 },
-                                valueRange = 0f..10f,
-                                steps = 9,
+                                valueRange = 50f..400f,
+                                steps = 34, // Saltos de ~10cm
                                 colors = SliderDefaults.colors(
                                     thumbColor = PrimaryBlue,
                                     activeTrackColor = PrimaryBlue
                                 )
                             )
                             
-                            // Labels
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(
-                                    text = "Baja",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = "Media",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = "Alta",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
+                            // Display value
+                            Text(
+                                text = "${detectionDistance.toInt()} cm",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = PrimaryBlue,
+                                modifier = Modifier.align(Alignment.CenterHorizontally)
+                            )
                         }
                     }
                     
@@ -235,33 +223,69 @@ fun SettingsScreen(
                             containerColor = MaterialTheme.colorScheme.surface
                         )
                     ) {
-                        Button(
-                            onClick = onLogoutClick,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(64.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color.Transparent,
-                                contentColor = WarningRed
-                            )
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.Start,
-                                verticalAlignment = Alignment.CenterVertically
+                        Column {
+                            // Clear History Button
+                            Button(
+                                onClick = { showClearHistoryDialog = true },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(64.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color.Transparent,
+                                    contentColor = WarningRed
+                                )
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Logout,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                                Spacer(modifier = Modifier.width(16.dp))
-                                Text(
-                                    text = "Cerrar Sesión",
-                                    style = MaterialTheme.typography.bodyLarge.copy(
-                                        fontWeight = FontWeight.SemiBold
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.Start,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(24.dp)
                                     )
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    Text(
+                                        text = "Eliminar Historial",
+                                        style = MaterialTheme.typography.bodyLarge.copy(
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    )
+                                }
+                            }
+                            
+                            Divider()
+
+                            // Logout Button
+                            Button(
+                                onClick = onLogoutClick,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(64.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color.Transparent,
+                                    contentColor = WarningRed
                                 )
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.Start,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Logout,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    Text(
+                                        text = "Cerrar Sesión",
+                                        style = MaterialTheme.typography.bodyLarge.copy(
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    )
+                                }
                             }
                         }
                     }
@@ -280,6 +304,31 @@ fun SettingsScreen(
                 showSoundDialog = false
             },
             onDismiss = { showSoundDialog = false }
+        )
+    }
+    
+    // Clear History Dialog
+    if (showClearHistoryDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearHistoryDialog = false },
+            title = { Text("¿Eliminar Historial?") },
+            text = { Text("Esta acción eliminará todos los eventos de detección registrados. No se puede deshacer.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onClearHistory()
+                        showClearHistoryDialog = false
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = WarningRed)
+                ) {
+                    Text("Eliminar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearHistoryDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
         )
     }
 }
