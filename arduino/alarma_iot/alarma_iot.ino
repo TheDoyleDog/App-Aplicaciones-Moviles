@@ -62,6 +62,20 @@ bool alarmEnabled = false;
 int detectionDistanceConfig = 50; // Distancia en cm para activar (valor por defecto)
 String alarmSoundType = "Siren"; // "Siren", "Bell", etc.
 
+// --- BUFFER DE EVENTOS OFFLINE ---
+struct BufferedEvent {
+  String message;
+  float distance;
+  unsigned long timestamp; // Timestamp local de cuando ocurrió (milisegundos)
+  bool pending;
+};
+
+const int BUFFER_SIZE = 20;
+BufferedEvent eventBuffer[BUFFER_SIZE];
+int bufferHead = 0; // Índice de escritura
+int bufferTail = 0; // Índice de lectura
+int bufferCount = 0; // Cantidad de elementos en buffer
+
 unsigned long lastTriggerTime = 0;
 const long triggerCooldown = 5000; // Esperar 5 seg entre alertas para no saturar
 
@@ -107,6 +121,11 @@ void loop() {
   Serial.print("Check Firebase... ");
   checkFirebaseState();
   Serial.println("Done.");
+
+  // 1.5 Procesar Buffer Offline (si hay conexión)
+  if (Firebase.ready() && bufferCount > 0) {
+      processBuffer();
+  }
 
   // 2. Si la alarma está activada, leer sensores
   if (alarmEnabled) {
@@ -265,9 +284,73 @@ void sendAlertToFirebase(String message, float distInfo) {
   if (distInfo > 0 && distInfo < 900) json.set("distance", distInfo);
 
   // Enviar
-  if (Firebase.setJSON(fbdo, path, json)) {
+  // Enviar
+  if (Firebase.ready() && Firebase.setJSON(fbdo, path, json)) {
     Serial.println("Alerta guardada en Firebase: " + message);
   } else {
     Serial.println("Error enviando: " + fbdo.errorReason());
+    // Guardar en buffer local para reintento
+    saveToBuffer(message, distInfo);
+  }
+}
+
+// --- GESTIÓN DE BUFFER OFFLINE ---
+
+void saveToBuffer(String message, float distance) {
+  if (bufferCount < BUFFER_SIZE) {
+    eventBuffer[bufferHead].message = message;
+    eventBuffer[bufferHead].distance = distance;
+    eventBuffer[bufferHead].timestamp = millis(); 
+    eventBuffer[bufferHead].pending = true;
+    
+    Serial.println("OFFLINE: Alerta guardada en buffer [" + String(bufferCount+1) + "/" + String(BUFFER_SIZE) + "]");
+    
+    bufferHead = (bufferHead + 1) % BUFFER_SIZE;
+    bufferCount++;
+  } else {
+    Serial.println("OFFLINE: Buffer LLENO. Alerta descartada (Sobreescribiendo antigua no ideal, simplemente descartamos nueva para proteger memoria).");
+    // Estrategia: Descartar la nueva o sobreescribir la vieja. 
+    // Por simplicidad y para preservar el historial más antiguo primero, descartamos la nueva.
+  }
+}
+
+void processBuffer() {
+  Serial.println("SYNC: Procesando eventos offline...");
+  
+  // Procesar solo uno por ciclo para no bloquear el loop principal demasiado tiempo
+  if (bufferCount > 0) {
+    BufferedEvent evt = eventBuffer[bufferTail];
+    
+    // Convertir timestamp relativo (millis cuando ocurrió) a timestamp absoluto aproximado
+    // Nota: Esto asume que tenemos hora NTP válida AHORA.
+    // Si no, se enviará con hora actual de subida.
+    
+    unsigned long long currentEpoch = timeClient.getEpochTime() * 1000ULL;
+    // Diferencia de tiempo desde que ocurrió hasta ahora
+    unsigned long timeDiff = millis() - evt.timestamp; 
+    
+    // Reconstruir timestamp del evento (Aproximado)
+    // timestamp_evento = timestamp_actual - tiempo_transcurrido
+    unsigned long long eventTimestamp = currentEpoch - timeDiff;
+    
+    String eventId = "evt_offline_" + String((unsigned long)(eventTimestamp/1000));
+    String path = "/users/" + String(USER_UID) + "/history/" + eventId;
+    
+    FirebaseJson json;
+    json.set("id", eventId);
+    json.set("message", evt.message + " (Sincronizado)");
+    json.set("timestamp", (double)eventTimestamp);
+    json.set("sensorType", (evt.message.indexOf("PIR") > 0) ? "MOTION" : "DISTANCE");
+    if (evt.distance > 0 && evt.distance < 900) json.set("distance", evt.distance);
+    
+    if (Firebase.setJSON(fbdo, path, json)) {
+      Serial.println("SYNC: Evento offline recuperado y enviado!");
+      
+      // Avanzar cola
+      bufferTail = (bufferTail + 1) % BUFFER_SIZE;
+      bufferCount--;
+    } else {
+      Serial.println("SYNC: Fallo al sincronizar (Reintentaremos luego): " + fbdo.errorReason());
+    }
   }
 }

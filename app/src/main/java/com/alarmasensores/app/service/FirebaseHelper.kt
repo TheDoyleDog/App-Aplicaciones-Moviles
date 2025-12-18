@@ -58,6 +58,9 @@ class FirebaseHelper {
         
         Log.d(TAG, "Iniciando lectura de: $SENSOR_DATA_PATH")
         
+        // Mantener sincronizado para uso offline
+        myRef.keepSynced(true)
+        
         myRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 try {
